@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>KaraNīti · Old vs New Tax Regime Advisor · FY 2025-26</title>
+<meta name="description" content="Compare your income tax under the Old and New regimes for FY 2025-26 (AY 2026-27) and see which one costs you less. 100% free, offline, deterministic.">
+<meta name="theme-color" content="#0A0A0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KaraNīti">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0A0C; --panel:#111114; --panel-2:#16161A; --line:#26262C;
+  --gold:#D4AF6A; --gold-soft:rgba(212,175,106,.14); --gold-line:rgba(212,175,106,.35);
+  --green:#5DBB7E; --green-soft:rgba(93,187,126,.12);
+  --red:#D97066;
+  --ink:#EDEAE2; --ink-dim:#A7A49B; --ink-faint:#6E6C66;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:'DM Sans',system-ui,sans-serif;line-height:1.55;min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+/* Header */
+header{padding:34px 0 22px;border-bottom:1px solid var(--line)}
+.brand-row{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+h1{font-family:'Cinzel',serif;font-weight:600;font-size:clamp(26px,5vw,38px);letter-spacing:.06em;color:var(--gold)}
+.fy-chip{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);border:1px solid var(--gold-line);border-radius:999px;padding:4px 12px;background:var(--gold-soft)}
+.tagline{margin-top:8px;color:var(--ink-dim);font-size:14.5px;max-width:640px}
+.free-note{margin-top:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;color:var(--green);text-transform:uppercase}
+
+/* Layout */
+main{display:grid;grid-template-columns:1fr 1fr;gap:22px;padding:26px 0 10px}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.card h2{font-family:'Cinzel',serif;font-size:15px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.card .sub{font-size:12.5px;color:var(--ink-faint);margin-bottom:16px}
+
+/* Inputs */
+.field{margin-bottom:14px}
+.field label{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--ink-dim);margin-bottom:6px;font-weight:500}
+.field label .cap{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--ink-faint)}
+.field input[type=number]{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:'DM Mono',monospace;font-size:16px;padding:11px 12px;outline:none;transition:border-color .15s}
+.field input[type=number]:focus{border-color:var(--gold-line)}
+.field input::-webkit-outer-spin-button,.field input::-webkit-inner-spin-button{-webkit-appearance:none}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{flex:1;min-width:88px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;color:var(--ink-dim);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 8px;cursor:pointer;transition:all .15s}
+.seg button.on{background:var(--gold-soft);border-color:var(--gold-line);color:var(--gold);font-weight:600}
+.hint{font-size:11.5px;color:var(--ink-faint);margin-top:5px}
+.field input[type=date]{width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;outline:none;color-scheme:dark}
+.add-btn{background:var(--gold-soft);border:1px solid var(--gold-line);border-radius:10px;color:var(--gold);font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;padding:10px 16px;cursor:pointer}
+.pay-list{margin-top:10px;display:grid;gap:6px}
+.pay-list .p{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:12.5px}
+.pay-list .p button{background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;line-height:1;padding:2px 6px}
+.pay-list .empty{font-size:12px;color:var(--ink-faint);font-family:'DM Sans',sans-serif}
+.section-label{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:20px 0 12px;display:flex;align-items:center;gap:10px}
+.section-label::after{content:"";flex:1;height:1px;background:var(--line)}
+.badge-old{color:#C9A2E8}
+.badge-both{color:var(--green)}
+
+/* Verdict */
+.verdict{border-radius:var(--radius);padding:22px 20px;text-align:center;border:1px solid var(--gold-line);background:linear-gradient(180deg,var(--gold-soft),transparent);margin-bottom:22px}
+.verdict .v-eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+.verdict .v-title{font-family:'Cinzel',serif;font-size:clamp(20px,4.4vw,28px);font-weight:600;color:var(--gold);margin:8px 0 4px;letter-spacing:.04em}
+.verdict .v-save{font-family:'DM Mono',monospace;font-size:15px;color:var(--green)}
+.verdict.tie .v-title{color:var(--ink)}
+
+/* Compare beam */
+.beam{display:flex;height:14px;border-radius:999px;overflow:hidden;border:1px solid var(--line);margin:16px 0 8px}
+.beam .b-old{background:#8b6bb0}
+.beam .b-new{background:var(--gold)}
+.beam-legend{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-dim);margin-bottom:6px}
+
+/* Regime cards */
+.regimes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:480px){.regimes{grid-template-columns:1fr}}
+.regime{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:16px}
+.regime.winner{border-color:var(--green);box-shadow:0 0 0 1px var(--green-soft)}
+.regime h3{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);display:flex;justify-content:space-between}
+.regime h3 .win-tag{color:var(--green);letter-spacing:.08em}
+.regime .total{font-family:'DM Mono',monospace;font-size:clamp(22px,5vw,28px);color:var(--ink);margin:8px 0 2px}
+.regime .eff{font-size:12px;color:var(--ink-faint)}
+.rows{margin-top:12px;border-top:1px solid var(--line)}
+.rows .r{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.rows .r span:first-child{color:var(--ink-dim)}
+.rows .r span:last-child{font-family:'DM Mono',monospace;color:var(--ink)}
+.rows .r.minus span:last-child{color:var(--green)}
+
+/* Details / notes */
+details{border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:12px;overflow:hidden}
+details summary{cursor:pointer;padding:14px 16px;font-size:13.5px;font-weight:600;color:var(--ink-dim);list-style:none;display:flex;justify-content:space-between;align-items:center}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"+";font-family:'DM Mono',monospace;color:var(--gold)}
+details[open] summary::after{content:"–"}
+details .d-body{padding:0 16px 16px;font-size:13px;color:var(--ink-dim)}
+details .d-body ul{padding-left:18px;display:grid;gap:6px}
+table.slabs{width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:12px;margin-top:8px}
+table.slabs th,table.slabs td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+table.slabs th{color:var(--ink-faint);font-weight:400;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
+table.slabs td{color:var(--ink)}
+
+.disclaimer{font-size:11.5px;color:var(--ink-faint);padding:14px 0 6px}
+footer{border-top:1px solid var(--line);margin-top:24px;padding:20px 0 34px;text-align:center}
+footer .sig{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;color:var(--ink-faint)}
+footer .sig b{color:var(--gold);font-weight:500}
+
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand-row">
+      <h1>KaraNīti</h1>
+      <span class="fy-chip">FY 2025-26 · AY 2026-27</span>
+    </div>
+    <p class="tagline">Old regime vs New regime, computed side by side under Section 115BAC rules — with a clear verdict on which one costs you less.</p>
+    <p class="free-note">● 100% free · deterministic · works offline · nothing leaves your device</p>
+  </div>
+</header>
+
+<div class="wrap">
+<main>
+
+  <!-- ============ INPUTS ============ -->
+  <section class="card" aria-label="Your details">
+    <h2>Your Details</h2>
+    <p class="sub">Everything recalculates live. Inputs are saved on this device only.</p>
+
+    <div class="field">
+      <label>Age group <span class="cap">affects old-regime exemption</span></label>
+      <div class="seg" id="ageSeg" role="radiogroup" aria-label="Age group">
+        <button data-v="below60" class="on">Below 60</button>
+        <button data-v="senior">60 – 79</button>
+        <button data-v="super">80 +</button>
+      </div>
+    </div>
+
+    <div class="section-label">Income</div>
+
+    <div class="field">
+      <label for="salary">Gross salary income (₹ / year)</label>
+      <input type="number" id="salary" inputmode="numeric" min="0" placeholder="e.g. 1500000">
+      <p class="hint">Standard deduction is applied automatically: ₹75,000 in the new regime, ₹50,000 in the old regime.</p>
+    </div>
+
+    <div class="field">
+      <label for="other">Other income (₹ / year) <span class="cap">interest, dividends, etc.</span></label>
+      <input type="number" id="other" inputmode="numeric" min="0" placeholder="0">
+    </div>
+
+    <div class="section-label">Let-out property <span style="text-transform:none;letter-spacing:0">(commercial / residential, rented out)</span></div>
+
+    <div class="field">
+      <label for="rent">Annual rent received (₹)</label>
+      <input type="number" id="rent" inputmode="numeric" min="0" placeholder="0">
+    </div>
+
+    <div class="field">
+      <label for="muni">Municipal / property taxes paid (₹) <span class="cap">deducted from rent</span></label>
+      <input type="number" id="muni" inputmode="numeric" min="0" placeholder="0">
+      <p class="hint">Deductible only if actually paid by you (the owner) during FY 2025-26. A 30% standard deduction u/s 24(a) is then applied automatically on the balance.</p>
+    </div>
+
+    <div class="field">
+      <label for="letint">Interest on loan — let-out property 24(b) <span class="cap">no upper cap</span></label>
+      <input type="number" id="letint" inputmode="numeric" min="0" placeholder="0">
+      <p class="hint">Fully deductible against rent in <b>both</b> regimes. But if it creates a loss: old regime sets off up to ₹2L against other income (rest carried forward); new regime allows no set-off against salary/other income.</p>
+    </div>
+
+    <div class="section-label badge-both">Allowed in both regimes</div>
+
+    <div class="field">
+      <label for="nps2">Employer NPS — 80CCD(2) <span class="cap">up to 14% of basic</span></label>
+      <input type="number" id="nps2" inputmode="numeric" min="0" placeholder="0">
+    </div>
+
+    <div class="section-label badge-old">Old regime only</div>
+
+    <div class="field">
+      <label for="hra">HRA exemption claimed — 10(13A)</label>
+      <input type="number" id="hra" inputmode="numeric" min="0" placeholder="0">
+      <p class="hint">Enter the exempt portion (least of: actual HRA, rent − 10% of basic, 50%/40% of basic).</p>
+    </div>
+
+    <div class="field">
+      <label for="d80c">80C — PF, PPF, ELSS, LIC… <span class="cap">max ₹1,50,000</span></label>
+      <input type="number" id="d80c" inputmode="numeric" min="0" placeholder="0">
+    </div>
+
+    <div class="field">
+      <label for="dccd1b">80CCD(1B) — own NPS <span class="cap">max ₹50,000</span></label>
+      <input type="number" id="dccd1b" inputmode="numeric" min="0" placeholder="0">
+    </div>
+
+    <div class="field">
+      <label for="d80d">80D — health insurance <span class="cap">₹25k / ₹50k limits apply</span></label>
+      <input type="number" id="d80d" inputmode="numeric" min="0" placeholder="0">
+    </div>
+
+    <div class="field">
+      <label for="protax">Professional tax paid — 16(iii) <span class="cap">max ₹2,500</span></label>
+      <input type="number" id="protax" inputmode="numeric" min="0" placeholder="0">
+    </div>
+
+    <div class="section-label badge-old">Home loan — from your interest certificate</div>
+
+    <div class="field">
+      <label for="d24b">Interest — self-occupied property 24(b) <span class="cap">max ₹2,00,000</span></label>
+      <input type="number" id="d24b" inputmode="numeric" min="0" placeholder="0">
+      <p class="hint">From the "interest" column of your lender's certificate. If the property is <b>let out</b>, enter its interest in the let-out section above instead — it has no cap there.</p>
+    </div>
+
+    <div class="field">
+      <label for="principal">Principal repaid — counts toward 80C <span class="cap">combined 80C cap ₹1,50,000</span></label>
+      <input type="number" id="principal" inputmode="numeric" min="0" placeholder="0">
+      <p class="hint">The "principal" column of the certificate. Added to your 80C bucket above; the ₹1.5L cap applies to both together. Stamp duty/registration paid this year also qualifies.</p>
+    </div>
+
+    <div class="field">
+      <label for="dother">Other deductions — 80G, 80E, 80TTA/TTB, 80EEA… </label>
+      <input type="number" id="dother" inputmode="numeric" min="0" placeholder="0">
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section aria-label="Result" aria-live="polite">
+
+    <div class="verdict" id="verdict">
+      <div class="v-eyebrow">Verdict</div>
+      <div class="v-title" id="vTitle">Enter your income</div>
+      <div class="v-save" id="vSave">The comparison updates as you type</div>
+      <div class="v-save" id="vExtra" style="color:var(--red);display:none;margin-top:4px"></div>
+    </div>
+
+    <div class="beam-legend"><span>OLD ₹<b id="beamOld">0</b></span><span>NEW ₹<b id="beamNew">0</b></span></div>
+    <div class="beam" aria-hidden="true">
+      <div class="b-old" id="barOld" style="width:50%"></div>
+      <div class="b-new" id="barNew" style="width:50%"></div>
+    </div>
+
+    <div class="regime" id="hpPanel" style="display:none;margin-top:14px">
+      <h3><span>Let-out Property — Income Computation</span><span class="win-tag" style="color:var(--gold)">SEC 22–24</span></h3>
+      <div class="rows" id="hpRows"></div>
+    </div>
+
+    <div class="regimes" style="margin-top:14px">
+      <div class="regime" id="cardOld">
+        <h3><span>Old Regime</span><span class="win-tag" id="winOld"></span></h3>
+        <div class="total" id="totOld">₹ 0</div>
+        <div class="eff" id="effOld">Effective rate —</div>
+        <div class="rows" id="rowsOld"></div>
+      </div>
+      <div class="regime" id="cardNew">
+        <h3><span>New Regime</span><span class="win-tag" id="winNew"></span></h3>
+        <div class="total" id="totNew">₹ 0</div>
+        <div class="eff" id="effNew">Effective rate —</div>
+        <div class="rows" id="rowsNew"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:18px">
+      <details>
+        <summary>Slab rates used — FY 2025-26</summary>
+        <div class="d-body">
+          <table class="slabs">
+            <tr><th>New regime</th><th>Rate</th></tr>
+            <tr><td>Up to ₹4,00,000</td><td>Nil</td></tr>
+            <tr><td>₹4L – ₹8L</td><td>5%</td></tr>
+            <tr><td>₹8L – ₹12L</td><td>10%</td></tr>
+            <tr><td>₹12L – ₹16L</td><td>15%</td></tr>
+            <tr><td>₹16L – ₹20L</td><td>20%</td></tr>
+            <tr><td>₹20L – ₹24L</td><td>25%</td></tr>
+            <tr><td>Above ₹24L</td><td>30%</td></tr>
+          </table>
+          <table class="slabs">
+            <tr><th>Old regime <span id="oldSlabAge">(below 60)</span></th><th>Rate</th></tr>
+            <tbody id="oldSlabBody"></tbody>
+          </table>
+          <p style="margin-top:10px">Rebate u/s 87A: new regime — full rebate up to ₹60,000 if taxable income ≤ ₹12L (marginal relief just above ₹12L). Old regime — up to ₹12,500 if taxable income ≤ ₹5L. Surcharge above ₹50L (capped at 25% in the new regime) and 4% health &amp; education cess are included in the totals.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Advance tax &amp; interest rules</summary>
+        <div class="d-body">
+          <ul>
+            <li><b>Who:</b> anyone whose net tax liability (after TDS) is ₹10,000+ in the year. Resident senior citizens with no business/professional income are exempt (Sec 207).</li>
+            <li><b>When:</b> 15% by 15 Jun · 45% by 15 Sep · 75% by 15 Dec · 100% by 15 Mar (cumulative).</li>
+            <li><b>234C:</b> 1% per month for 3 months on each deferred installment (1 month for the March one). No interest on the first two if you'd paid at least 12% / 36% respectively.</li>
+            <li><b>234B:</b> if total advance tax paid is under 90% of the liability — 1% per month (or part) on the shortfall from 1 April 2026 until you pay.</li>
+            <li><b>234A</b> (not computed here): a further 1% per month applies only if you also file the return after the due date with tax unpaid.</li>
+            <li>Let-out property rent counts toward advance tax liability — TDS u/s 194-IB (if your tenant deducts it) counts as tax already paid.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>Switching rules you should know</summary>
+        <div class="d-body">
+          <ul>
+            <li>The new regime is the <b>default</b>. To use the old regime, you must actively opt out.</li>
+            <li><b>Salaried / no business income:</b> choose the regime every year directly in ITR-1 or ITR-2 — no separate form needed. File before the Section 139(1) due date.</li>
+            <li><b>Business or professional income:</b> opting out requires <b>Form 10-IEA</b> before the due date, and you get only <b>one</b> lifetime switch back to the new regime.</li>
+            <li>Tell your employer your intended regime for correct TDS — but that intimation alone doesn't count as opting out; the choice is exercised in the ITR itself.</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+    <p class="disclaimer">Educational estimate for resident individuals. Models salary, other income and one let-out + one self-occupied property. Excludes special-rate income (capital gains, lottery), 80D sub-limits, and business-specific deductions. Interest u/s 234B/234C is approximated on rounded figures. Verify with the Income Tax Department's calculator or a tax professional before filing.</p>
+  </section>
+
+  <!-- ============ ADVANCE TAX ============ -->
+  <section class="card" style="grid-column:1/-1" aria-label="Advance tax and interest">
+    <h2>Advance Tax &amp; Interest — FY 2025-26</h2>
+    <p class="sub">Computed on <b id="advRegime" style="color:var(--gold)">—</b>. Advance tax applies when net liability (after TDS) is ₹10,000 or more.</p>
+
+    <div class="regimes">
+      <div>
+        <div class="field">
+          <label for="tds">TDS / TCS deducted during the year (₹)</label>
+          <input type="number" id="tds" inputmode="numeric" min="0" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Record advance tax payments made <span class="cap">challan 280</span></label>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr auto;gap:8px">
+            <input type="date" id="payDate" min="2025-04-01" max="2026-03-31" aria-label="Payment date">
+            <input type="number" id="payAmt" inputmode="numeric" min="0" placeholder="Amount ₹" aria-label="Payment amount">
+            <button class="add-btn" id="addPay">Add</button>
+          </div>
+          <div class="pay-list" id="payList"></div>
+          <p class="hint">Log each payment between 1 Apr 2025 and 31 Mar 2026. The app buckets them into the four installments by date automatically and saves the record on this device.</p>
+        </div>
+        <div class="field">
+          <label for="payMonth">When will you pay the balance &amp; file your return?</label>
+          <div class="seg" id="payMonth">
+            <button data-v="4" >Apr '26</button><button data-v="5">May '26</button>
+            <button data-v="6">Jun '26</button><button data-v="7" class="on">Jul '26</button>
+            <button data-v="8">Aug '26</button><button data-v="9">Sep '26</button>
+          </div>
+          <p class="hint">234B runs 1%/month from 1 Apr 2026 until you pay. Filing after 31 Jul 2026 also triggers 234A interest on any balance plus the 234F late fee.</p>
+        </div>
+        <div class="field" id="srExemptWrap" style="display:none">
+          <label style="color:var(--green)">Resident senior citizens with no business income are exempt from advance tax (Sec 207)</label>
+          <div class="seg" id="bizSeg">
+            <button data-v="no" class="on">No business income</button>
+            <button data-v="yes">I have business income</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <table class="slabs" aria-label="Advance tax installment schedule">
+          <tr><th>Due date</th><th>Required (cum.)</th><th>You paid</th><th>Shortfall</th></tr>
+          <tbody id="advSched"></tbody>
+        </table>
+        <div class="rows" style="margin-top:14px" id="advRows"></div>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p class="sig">KaraNīti · Designed &amp; Architected by <b>Krishnamurthy Kandregula</b> · Made by Claude</p>
+  </div>
+</footer>
+
+<script>
+/* ============ CONSTANTS — FY 2025-26 (AY 2026-27) ============ */
+const NEW_SLABS = [[400000,0],[800000,.05],[1200000,.10],[1600000,.15],[2000000,.20],[2400000,.25],[Infinity,.30]];
+const OLD_EXEMPT = { below60:250000, senior:300000, super:500000 };
+const SUR_NEW = [[5e6,.10],[1e7,.15],[2e7,.25]];
+const SUR_OLD = [[5e6,.10],[1e7,.15],[2e7,.25],[5e7,.37]];
+const CESS = 0.04;
+
+const $ = id => document.getElementById(id);
+const inr = n => '₹ ' + Math.round(n).toLocaleString('en-IN');
+
+/* ============ CORE MATH ============ */
+function slabTax(income, slabs){
+  let tax = 0, prev = 0;
+  for (const [upto, rate] of slabs){
+    if (income > prev) tax += (Math.min(income, upto) - prev) * rate;
+    prev = upto;
+    if (income <= upto) break;
+  }
+  return tax;
+}
+function oldSlabs(age){
+  const e = OLD_EXEMPT[age];
+  return e === 500000
+    ? [[500000,0],[1000000,.20],[Infinity,.30]]
+    : [[e,0],[500000,.05],[1000000,.20],[Infinity,.30]];
+}
+/* tax after 87A rebate (before surcharge/cess) */
+function taxAfterRebate(taxable, regime, age){
+  if (regime === 'new'){
+    let t = slabTax(taxable, NEW_SLABS);
+    if (taxable <= 1200000) return { tax: Math.max(0, t - Math.min(t, 60000)), rebate: Math.min(t, 60000) };
+    // marginal relief just above ₹12L
+    const capped = Math.min(t, taxable - 1200000);
+    return { tax: capped, rebate: t - capped };
+  } else {
+    let t = slabTax(taxable, oldSlabs(age));
+    if (taxable <= 500000) return { tax: Math.max(0, t - Math.min(t, 12500)), rebate: Math.min(t, 12500) };
+    return { tax: t, rebate: 0 };
+  }
+}
+/* tax + surcharge with marginal relief (recursive on thresholds) */
+function withSurcharge(taxable, regime, age){
+  const bands = regime === 'new' ? SUR_NEW : SUR_OLD;
+  const { tax, rebate } = taxAfterRebate(taxable, regime, age);
+  let rate = 0, threshold = 0;
+  for (const [t, r] of bands) if (taxable > t){ rate = r; threshold = t; }
+  if (!rate) return { tax, rebate, surcharge: 0, total: tax };
+  let sur = tax * rate;
+  const atThreshold = withSurcharge(threshold, regime, age).total;
+  const cap = atThreshold + (taxable - threshold);
+  if (tax + sur > cap) sur = Math.max(0, cap - tax);
+  return { tax, rebate, surcharge: sur, total: tax + sur };
+}
+function compute(regime, inputs){
+  const { salary, other, nps2, hra, d80c, dccd1b, d80d, d24b, dother, age,
+          rent, muni, letint, principal, protax } = inputs;
+
+  /* --- Income from house property (let-out) --- */
+  const NAV = Math.max(0, rent - muni);          // rent minus municipal taxes paid
+  const hpLetOut = NAV - 0.30*NAV - letint;      // 30% std deduction u/s 24(a), then interest u/s 24(b)
+
+  let taxable, dTotal, std, hpIncome, hpCarry = 0;
+  if (regime === 'new'){
+    /* New regime: SOP interest not allowed; let-out loss cannot be set off
+       against other heads and cannot be carried forward */
+    hpIncome = Math.max(0, hpLetOut);
+    hpCarry  = Math.min(0, hpLetOut);            // informational only (lapses)
+    std = salary > 0 ? Math.min(75000, salary) : 0;
+    dTotal = std + nps2;
+    taxable = Math.max(0, salary - std + other + hpIncome - nps2);
+  } else {
+    /* Old regime: HP head = let-out result minus SOP interest (max ₹2L);
+       aggregate HP loss set-off against other income capped at ₹2L,
+       balance carried forward 8 years */
+    const hpHead = hpLetOut - Math.min(d24b, 200000);
+    hpIncome = Math.max(hpHead, -200000);
+    hpCarry  = Math.min(0, hpHead - hpIncome);   // portion carried forward
+    std = salary > 0 ? Math.min(50000, salary) : 0;
+    const ptax = Math.min(protax, 2500);
+    const chap = Math.min(d80c + principal, 150000) + Math.min(dccd1b,50000) + d80d + dother + nps2;
+    dTotal = std + hra + ptax + chap;
+    taxable = Math.max(0, salary - std - hra - ptax + other + hpIncome - chap);
+  }
+  const r = withSurcharge(taxable, regime, age);
+  const cess = r.total * CESS;
+  const gross = salary + other + NAV;
+  return { taxable, dTotal, hpIncome, hpCarry,
+           slab: slabTax(taxable, regime==='new'?NEW_SLABS:oldSlabs(age)),
+           rebate: r.rebate, surcharge: r.surcharge, cess, final: r.total + cess,
+           eff: gross > 0 ? ((r.total + cess) / gross * 100) : 0 };
+}
+
+/* ============ ADVANCE TAX & INTEREST (Secs 207–211, 234B, 234C) ============ */
+const ADV_DATES = [['15 Jun 2025',.15],['15 Sep 2025',.45],['15 Dec 2025',.75],['15 Mar 2026',1.00]];
+const r100 = x => Math.floor(Math.max(0,x)/100)*100;   // shortfall rounded to ₹100 per Rule 119A
+
+function advanceTax(finalTax, tds, paid, totalPaidFY, payMonth, exempt, taxable){
+  const C = Math.max(0, finalTax - tds);   // net liability after TDS
+  const applies = C >= 10000 && !exempt;
+  const sched = ADV_DATES.map(([d,p],i)=>({
+    date:d, req: applies ? C*p : 0, paid: paid[i],
+    short: applies ? Math.max(0, C*p - paid[i]) : 0
+  }));
+  let i234c = 0;
+  if (applies){
+    if (paid[0] < .12*C) i234c += .01*3*r100(.15*C - paid[0]);   // 12% tolerance
+    if (paid[1] < .36*C) i234c += .01*3*r100(.45*C - paid[1]);   // 36% tolerance
+    i234c += .01*3*r100(.75*C - paid[2]);
+    i234c += .01*1*r100(C - paid[3]);
+  }
+  const balance = Math.max(0, C - totalPaidFY);
+  let i234b = 0;
+  if (applies && totalPaidFY < .90*C){
+    const months = payMonth - 3;            // Apr(4)→1 month … Sep(9)→6 months
+    i234b = .01*months*r100(C - totalPaidFY);
+  }
+  /* Late filing (return due 31 Jul 2026 for non-audit cases) */
+  let i234a = 0, fee234f = 0, late = payMonth > 7;
+  if (late){
+    if (balance > 0) i234a = .01*(payMonth - 7)*r100(balance);           // 1%/month from Aug
+    if (taxable > 250000) fee234f = taxable <= 500000 ? 1000 : 5000;     // Sec 234F
+  }
+  return { C, applies, sched, i234c, i234b, i234a, fee234f, late, balance };
+}
+
+/* ============ UI ============ */
+const state = { age:'below60', payMonth:7, biz:'no', payments:[] };
+const fields = ['salary','other','nps2','hra','d80c','dccd1b','d80d','d24b','dother',
+                'rent','muni','letint','tds','principal','protax'];
+
+function readInputs(){
+  const v = {};
+  fields.forEach(f => v[f] = Math.max(0, Number($(f).value) || 0));
+  v.age = state.age;
+  return v;
+}
+function rowHTML(label, val, minus){
+  return `<div class="r ${minus?'minus':''}"><span>${label}</span><span>${minus?'− ':''}${inr(val)}</span></div>`;
+}
+function renderRegime(prefix, res){
+  $('tot'+prefix).textContent = inr(res.final);
+  $('eff'+prefix).textContent = 'Effective rate ' + res.eff.toFixed(1) + '% of gross income';
+  let hpRow = '';
+  if (res.hpIncome !== 0 || res.hpCarry !== 0){
+    hpRow = res.hpIncome >= 0
+      ? rowHTML('House property income', res.hpIncome)
+      : `<div class="r minus"><span>HP loss set off</span><span>− ${inr(-res.hpIncome).slice(2)}</span></div>`;
+    if (res.hpCarry < 0){
+      const note = prefix === 'Old' ? 'HP loss carried fwd (8 yrs)' : 'HP loss lapses (no set-off)';
+      hpRow += `<div class="r"><span>${note}</span><span style="color:var(--ink-faint)">${inr(-res.hpCarry)}</span></div>`;
+    }
+  }
+  $('rows'+prefix).innerHTML =
+    hpRow +
+    rowHTML('Deductions applied', res.dTotal, true) +
+    rowHTML('Taxable income', res.taxable) +
+    rowHTML('Tax as per slabs', res.slab) +
+    (res.rebate ? rowHTML('Rebate u/s 87A', res.rebate, true) : '') +
+    (res.surcharge ? rowHTML('Surcharge', res.surcharge) : '') +
+    rowHTML('Health & edu cess 4%', res.cess);
+}
+function renderAdvance(oFinal, nFinal, inputs, oTaxable, nTaxable){
+  const useNew = nFinal <= oFinal;
+  const finalTax = useNew ? nFinal : oFinal;
+  const taxable = useNew ? nTaxable : oTaxable;
+  $('advRegime').textContent = useNew ? 'the New regime (your lower-tax option)' : 'the Old regime (your lower-tax option)';
+  const senior = state.age !== 'below60';
+  $('srExemptWrap').style.display = senior ? 'block' : 'none';
+  const exempt = senior && state.biz === 'no';
+
+  /* bucket ledger payments into cumulative installments by date */
+  const cutoffs = ['2025-06-15','2025-09-15','2025-12-15','2026-03-15'];
+  const cum = cutoffs.map(c => state.payments.filter(p => p.d <= c).reduce((s,p)=>s+p.a,0));
+  const totalFY = state.payments.reduce((s,p)=>s+p.a,0);
+
+  /* render ledger */
+  $('payList').innerHTML = state.payments.length
+    ? state.payments.map((p,i) =>
+        `<div class="p"><span>${p.d}</span><span>${inr(p.a)}</span>
+         <button data-i="${i}" aria-label="Remove payment">×</button></div>`).join('')
+      + `<div class="p" style="border-color:var(--gold-line)"><span>Total paid</span><span style="color:var(--gold)">${inr(totalFY)}</span><span></span></div>`
+    : `<div class="empty">No payments recorded yet.</div>`;
+
+  const a = advanceTax(finalTax, inputs.tds, cum, totalFY, state.payMonth, exempt, taxable);
+  $('advSched').innerHTML = a.sched.map(s =>
+    `<tr><td>${s.date}</td><td>${inr(s.req)}</td><td>${inr(s.paid)}</td>
+     <td style="color:${s.short>0?'var(--red)':'var(--green)'}">${s.short>0?inr(s.short):'—'}</td></tr>`).join('');
+  let rows = rowHTML('Net liability after TDS', a.C);
+  if (exempt){
+    rows += `<div class="r"><span style="color:var(--green)">Exempt from advance tax u/s 207</span><span>—</span></div>`;
+  } else if (!a.applies){
+    rows += `<div class="r"><span style="color:var(--green)">Below ₹10,000 — advance tax not applicable</span><span>—</span></div>`;
+  } else {
+    rows += rowHTML('Advance tax paid', totalFY, true) +
+            rowHTML('Interest u/s 234C (deferment)', a.i234c) +
+            rowHTML('Interest u/s 234B (shortfall < 90%)', a.i234b);
+  }
+  if (a.late){
+    if (a.i234a) rows += rowHTML('Interest u/s 234A (late filing)', a.i234a);
+    if (a.fee234f) rows += rowHTML('Late filing fee u/s 234F', a.fee234f);
+  }
+  const interestFees = (a.applies && !exempt ? a.i234c + a.i234b : 0) + a.i234a + a.fee234f;
+  const totalDue = a.balance + interestFees;
+  rows += `<div class="r"><span><b>Balance payable with return</b></span><span style="color:var(--gold)"><b>${inr(totalDue)}</b></span></div>`;
+  if (interestFees > 0){
+    rows += `<div class="r"><span><b>Total FY 2025-26 outgo — tax + interest + fees</b></span><span style="color:var(--red)"><b>${inr(finalTax + interestFees)}</b></span></div>`;
+  }
+  $('advRows').innerHTML = rows;
+  return { interestFees, grand: finalTax + interestFees };
+}
+function renderOldSlabTable(){
+  const names = { below60:'(below 60)', senior:'(senior, 60–79)', super:'(super senior, 80+)' };
+  $('oldSlabAge').textContent = names[state.age];
+  const e = OLD_EXEMPT[state.age];
+  let rows = `<tr><td>Up to ₹${(e/100000).toFixed(1).replace('.0','')}L</td><td>Nil</td></tr>`;
+  if (e < 500000) rows += `<tr><td>₹${(e/100000).toFixed(1).replace('.0','')}L – ₹5L</td><td>5%</td></tr>`;
+  rows += `<tr><td>₹5L – ₹10L</td><td>20%</td></tr><tr><td>Above ₹10L</td><td>30%</td></tr>`;
+  $('oldSlabBody').innerHTML = rows;
+}
+function update(){
+  const inputs = readInputs();
+  localStorage.setItem('karaniti_fy2526', JSON.stringify({ ...inputs, payMonth: state.payMonth, biz: state.biz, payments: state.payments }));
+  const o = compute('old', inputs), n = compute('new', inputs);
+  renderRegime('Old', o); renderRegime('New', n);
+  renderOldSlabTable();
+  const adv = renderAdvance(o.final, n.final, inputs, o.taxable, n.taxable);
+
+  /* let-out property computation panel — 30% deduction shown explicitly */
+  const hasHP = inputs.rent > 0 || inputs.muni > 0 || inputs.letint > 0;
+  $('hpPanel').style.display = hasHP ? 'block' : 'none';
+  if (hasHP){
+    const NAV = Math.max(0, inputs.rent - inputs.muni);
+    const std30 = 0.30 * NAV;
+    const result = NAV - std30 - inputs.letint;
+    $('hpRows').innerHTML =
+      rowHTML('Rent received (gross annual value)', inputs.rent) +
+      rowHTML('Municipal / property taxes paid', inputs.muni, true) +
+      rowHTML('Net annual value (NAV)', NAV) +
+      rowHTML('Standard deduction — 30% of NAV u/s 24(a)', std30, true) +
+      rowHTML('Interest on borrowed capital u/s 24(b)', inputs.letint, true) +
+      `<div class="r"><span><b>${result >= 0 ? 'Income from let-out property' : 'Loss from let-out property'}</b></span>
+       <span style="color:${result >= 0 ? 'var(--gold)' : 'var(--red)'}"><b>${result < 0 ? '− ' : ''}${inr(Math.abs(result))}</b></span></div>`;
+  }
+
+  /* beam */
+  const sum = o.final + n.final;
+  $('barOld').style.width = sum ? (o.final/sum*100)+'%' : '50%';
+  $('barNew').style.width = sum ? (n.final/sum*100)+'%' : '50%';
+  $('beamOld').textContent = Math.round(o.final).toLocaleString('en-IN');
+  $('beamNew').textContent = Math.round(n.final).toLocaleString('en-IN');
+
+  /* verdict */
+  const v = $('verdict'), diff = Math.abs(o.final - n.final);
+  $('cardOld').classList.toggle('winner', o.final < n.final);
+  $('cardNew').classList.toggle('winner', n.final < o.final);
+  $('winOld').textContent = o.final < n.final ? '✓ LOWER' : '';
+  $('winNew').textContent = n.final < o.final ? '✓ LOWER' : '';
+  v.classList.remove('tie');
+  if (inputs.salary + inputs.other === 0){
+    $('vTitle').textContent = 'Enter your income';
+    $('vSave').textContent = 'The comparison updates as you type';
+  } else if (diff < 1){
+    v.classList.add('tie');
+    $('vTitle').textContent = 'Both regimes are equal';
+    $('vSave').textContent = 'Tax payable is the same either way';
+  } else if (n.final < o.final){
+    $('vTitle').textContent = 'New Regime wins';
+    $('vSave').textContent = 'You save ' + inr(diff) + ' vs the old regime';
+  } else {
+    $('vTitle').textContent = 'Old Regime wins';
+    $('vSave').textContent = 'You save ' + inr(diff) + ' vs the new regime — remember to opt out in your ITR';
+  }
+  /* final outgo including interest & penalties */
+  const vx = $('vExtra');
+  if (adv && adv.interestFees > 0 && (inputs.salary + inputs.other + inputs.rent) > 0){
+    vx.style.display = 'block';
+    vx.textContent = '+ ' + inr(adv.interestFees) + ' interest & fees (234A/B/C, 234F) → final outgo ' + inr(adv.grand);
+  } else {
+    vx.style.display = 'none';
+  }
+}
+
+/* segmented controls */
+function segHandler(id, key){
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    [...$(id).children].forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    state[key] = key === 'payMonth' ? Number(b.dataset.v) : b.dataset.v;
+    update();
+  });
+}
+segHandler('ageSeg','age'); segHandler('payMonth','payMonth'); segHandler('bizSeg','biz');
+fields.forEach(f => $(f).addEventListener('input', update));
+
+/* payment ledger */
+$('addPay').addEventListener('click', () => {
+  const d = $('payDate').value, a = Math.max(0, Number($('payAmt').value) || 0);
+  if (!d || !a) return;
+  state.payments.push({ d, a });
+  state.payments.sort((x,y) => x.d < y.d ? -1 : 1);
+  $('payAmt').value = ''; update();
+});
+$('payList').addEventListener('click', e => {
+  const b = e.target.closest('button[data-i]'); if (!b) return;
+  state.payments.splice(Number(b.dataset.i), 1); update();
+});
+
+/* restore */
+try{
+  const saved = JSON.parse(localStorage.getItem('karaniti_fy2526') || 'null');
+  if (saved){
+    fields.forEach(f => { if (saved[f]) $(f).value = saved[f]; });
+    if (Array.isArray(saved.payments)) state.payments = saved.payments.filter(p => p && p.d && p.a > 0);
+    if (saved.age && OLD_EXEMPT[saved.age]){
+      state.age = saved.age;
+      [...$('ageSeg').children].forEach(x => x.classList.toggle('on', x.dataset.v === saved.age));
+    }
+    if (saved.payMonth >= 4 && saved.payMonth <= 9){
+      state.payMonth = saved.payMonth;
+      [...$('payMonth').children].forEach(x => x.classList.toggle('on', Number(x.dataset.v) === saved.payMonth));
+    }
+    if (saved.biz){
+      state.biz = saved.biz;
+      [...$('bizSeg').children].forEach(x => x.classList.toggle('on', x.dataset.v === saved.biz));
+    }
+  }
+}catch(e){}
+update();
+
+/* ============ PWA: canvas icon, blob manifest, blob service worker ============ */
+function makeIcon(size){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const x = c.getContext('2d');
+  x.fillStyle = '#0A0A0C'; x.fillRect(0,0,size,size);
+  x.strokeStyle = '#D4AF6A'; x.lineWidth = size*.02;
+  x.strokeRect(size*.08,size*.08,size*.84,size*.84);
+  x.fillStyle = '#D4AF6A';
+  x.font = `600 ${size*.42}px Cinzel, serif`;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('क', size/2, size*.54);
+  return c.toDataURL('image/png');
+}
+try{
+  const manifest = {
+    name: 'KaraNīti — Tax Regime Advisor', short_name: 'KaraNīti',
+    start_url: '.', display: 'standalone',
+    background_color: '#0A0A0C', theme_color: '#0A0A0C',
+    icons: [{ src: makeIcon(192), sizes: '192x192', type: 'image/png' },
+            { src: makeIcon(512), sizes: '512x512', type: 'image/png' }]
+  };
+  const mURL = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type:'application/json' }));
+  const link = document.createElement('link'); link.rel = 'manifest'; link.href = mURL;
+  document.head.appendChild(link);
+  const apple = document.createElement('link'); apple.rel = 'apple-touch-icon'; apple.href = makeIcon(180);
+  document.head.appendChild(apple);
+
+  if ('serviceWorker' in navigator){
+    const swCode = `
+      const CACHE='karaniti-v1';
+      self.addEventListener('install',e=>{self.skipWaiting();});
+      self.addEventListener('activate',e=>{e.waitUntil(clients.claim());});
+      self.addEventListener('fetch',e=>{
+        e.respondWith(
+          caches.open(CACHE).then(c=>c.match(e.request).then(hit=>{
+            const net=fetch(e.request).then(r=>{if(r.ok)c.put(e.request,r.clone());return r;}).catch(()=>hit);
+            return hit||net;
+          }))
+        );
+      });`;
+    const swURL = URL.createObjectURL(new Blob([swCode], { type:'text/javascript' }));
+    navigator.serviceWorker.register(swURL).catch(()=>{});
+  }
+}catch(e){}
+</script>
+</body>
+</html>
