@@ -617,11 +617,12 @@ function renderAdvance(oFinal, nFinal, inputs, oTaxable, nTaxable){
   const cutoffs = ['2025-06-15','2025-09-15','2025-12-15','2026-03-15'];
   const cum = cutoffs.map(c => state.payments.filter(p => p.d <= c).reduce((s,p)=>s+p.a,0));
   const totalFY = state.payments.reduce((s,p)=>s+p.a,0);
+  const lateMar = state.payments.filter(p => p.d > '2026-03-15').reduce((s,p)=>s+p.a,0);
 
   /* render ledger */
   $('payList').innerHTML = state.payments.length
     ? state.payments.map((p,i) =>
-        `<div class="p"><span>${p.d}</span><span>${inr(p.a)}</span>
+        `<div class="p"><span>${p.d}${p.d > '2026-03-15' ? ' <span style="color:var(--red)">⚠ after 15 Mar</span>' : ''}</span><span>${inr(p.a)}</span>
          <button data-i="${i}" aria-label="Remove payment">×</button></div>`).join('')
       + `<div class="p" style="border-color:var(--gold-line)"><span>Total paid</span><span style="color:var(--gold)">${inr(totalFY)}</span><span></span></div>`
     : `<div class="empty">No payments recorded yet.</div>`;
@@ -629,7 +630,8 @@ function renderAdvance(oFinal, nFinal, inputs, oTaxable, nTaxable){
   const a = advanceTax(finalTax, inputs.tds, cum, totalFY, state.payMonth, exempt, taxable);
   $('advSched').innerHTML = a.sched.map(s =>
     `<tr><td>${s.date}</td><td>${inr(s.req)}</td><td>${inr(s.paid)}</td>
-     <td style="color:${s.short>0?'var(--red)':'var(--green)'}">${s.short>0?inr(s.short):'—'}</td></tr>`).join('');
+     <td style="color:${s.short>0?'var(--red)':'var(--green)'}">${s.short>0?inr(s.short):'—'}</td></tr>`).join('') +
+    (lateMar > 0 ? `<tr><td colspan="4" style="color:var(--ink-faint);font-size:10.5px">＋ ${inr(lateMar)} paid 16–31 Mar 2026 — counts as advance tax for 234B &amp; balance, but not toward the 15 Mar installment (234C). If actually paid by 15 Mar, correct the date in the ledger.</td></tr>` : '');
   let rows = rowHTML('Total tax liability (' + (useNew ? 'new' : 'old') + ' regime)', finalTax) +
              rowHTML('Less: TDS / TCS deducted', inputs.tds, true) +
              rowHTML('Net liability after TDS', a.C);
@@ -653,7 +655,7 @@ function renderAdvance(oFinal, nFinal, inputs, oTaxable, nTaxable){
     rows += `<div class="r"><span>Total tax cost for the year (incl. ${inr(inputs.tds)} TDS + interest &amp; fees)</span><span style="color:var(--red)">${inr(finalTax + interestFees)}</span></div>`;
   }
   $('advRows').innerHTML = rows;
-  return { interestFees, grand: finalTax + interestFees, totalDue, a, useNew, finalTax, exempt, totalFY };
+  return { interestFees, grand: finalTax + interestFees, totalDue, a, useNew, finalTax, exempt, totalFY, lateMar };
 }
 function renderOldSlabTable(){
   const names = { below60:'(below 60)', senior:'(senior, 60–79)', super:'(super senior, 80+)' };
@@ -743,11 +745,13 @@ segHandler('ageSeg','age'); segHandler('payMonth','payMonth'); segHandler('bizSe
 fields.forEach(f => $(f).addEventListener('input', update));
 
 /* payment ledger */
-const FY_MIN = '2025-04-01', FY_MAX = '2026-03-31';
-/* default the date field so Add works immediately (empty date inputs look blank on iOS) */
+const FY_MIN = '2025-04-01', FY_MAX = '2026-03-31', LAST_INST = '2026-03-15';
+/* default the date field so Add works immediately (empty date inputs look blank on iOS).
+   After FY end, default to 15 Mar — the last installment date — since most year-end
+   payments target it; dating a payment 16–31 Mar attracts 234C on the March installment. */
 (function(){
   const t = new Date().toISOString().slice(0,10);
-  $('payDate').value = t < FY_MIN ? FY_MIN : (t > FY_MAX ? FY_MAX : t);
+  $('payDate').value = t < FY_MIN ? FY_MIN : (t > LAST_INST ? LAST_INST : t);
 })();
 function flashField(el){
   el.style.borderColor = 'var(--red)';
@@ -831,6 +835,7 @@ function buildReport(){
   let sec4 = `<table class="rp">
     <tr><th>Installment due date</th><th style="text-align:right">Required (cum.)</th><th style="text-align:right">Paid (cum.)</th><th style="text-align:right">Shortfall</th></tr>` +
     a.sched.map(s => `<tr><td>${s.date}</td><td class="num">${inr(s.req)}</td><td class="num">${inr(s.paid)}</td><td class="num">${s.short>0?inr(s.short):'—'}</td></tr>`).join('') +
+    (adv.lateMar > 0 ? `<tr><td colspan="4" style="font-size:9.5px;color:#6b6656">Note: ${inr(adv.lateMar)} paid between 16–31 Mar 2026 is included in advance tax paid (Sec 234B and balance) but does not count toward the 15 Mar installment for Sec 234C.</td></tr>` : '') +
     '</table><table class="rp" style="margin-top:8px">' +
     rp('Total tax liability — ' + (adv.useNew ? 'new' : 'old') + ' regime', adv.finalTax, {always:true}) +
     rp('Less: TDS / TCS deducted during the year', inputs.tds, {minus:true, always:true}) +
