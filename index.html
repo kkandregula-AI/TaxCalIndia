@@ -122,6 +122,7 @@ footer .sig b{color:var(--gold);font-weight:500}
   header,.wrap,footer{display:none!important}
   #printReport{display:block;color:#1a1a14;font-family:'DM Sans',sans-serif;font-size:11.5px;line-height:1.5}
   .rp-frame{border:1px solid #1a1a14;outline:3px double #1a1a14;outline-offset:-7px;padding:26px 28px}
+  .rp-break{page-break-before:always;margin-top:0}
   .rp-head{text-align:center;border-bottom:2px solid #1a1a14;padding-bottom:12px;margin-bottom:16px}
   .rp-head h1{font-family:'Cinzel',serif;font-size:24px;font-weight:600;letter-spacing:.12em;color:#1a1a14}
   .rp-head .rp-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6b6656;margin-top:4px}
@@ -480,6 +481,7 @@ function compute(regime, inputs){
     std = salary > 0 ? Math.min(75000, salary) : 0;
     dTotal = std + nps2;
     taxable = Math.max(0, salary - std + other + hpIncome - nps2);
+    taxable = Math.round(taxable/10)*10;                  // Sec 288A: income rounded to nearest ₹10
   } else {
     /* Old regime: HP head = let-out result minus SOP interest (max ₹2L);
        aggregate HP loss set-off against other income capped at ₹2L,
@@ -492,14 +494,32 @@ function compute(regime, inputs){
     const chap = Math.min(d80c + principal, 150000) + Math.min(dccd1b,50000) + d80d + dother + nps2;
     dTotal = std + hra + ptax + chap;
     taxable = Math.max(0, salary - std - hra - ptax + other + hpIncome - chap);
+    taxable = Math.round(taxable/10)*10;                  // Sec 288A
   }
   const r = withSurcharge(taxable, regime, age);
   const cess = r.total * CESS;
   const gross = salary + other + NAV;
+  const final = Math.round((r.total + cess)/10)*10;       // Sec 288B: tax rounded to nearest ₹10
   return { taxable, dTotal, hpIncome, hpCarry,
            slab: slabTax(taxable, regime==='new'?NEW_SLABS:oldSlabs(age)),
-           rebate: r.rebate, surcharge: r.surcharge, cess, final: r.total + cess,
-           eff: gross > 0 ? ((r.total + cess) / gross * 100) : 0 };
+           rebate: r.rebate, surcharge: r.surcharge, cess, final,
+           eff: gross > 0 ? (final / gross * 100) : 0 };
+}
+
+/* slab-wise breakup for the annexure computation sheet */
+function bandLabel(a, b){
+  const L = x => x >= 1e7 ? (x/1e7) + ' Cr' : (x/1e5).toString().replace(/\.0$/,'') + ' L';
+  return b === Infinity ? 'Above ₹' + L(a) : (a === 0 ? 'Up to ₹' + L(b) : '₹' + L(a) + ' – ₹' + L(b));
+}
+function slabBreakup(taxable, slabs){
+  const rows = []; let prev = 0;
+  for (const [upto, rate] of slabs){
+    if (taxable <= prev) break;
+    const amt = Math.min(taxable, upto) - prev;
+    rows.push({ band: bandLabel(prev, upto), rate, amt, tax: amt * rate });
+    prev = upto;
+  }
+  return rows;
 }
 
 /* ============ ADVANCE TAX & INTEREST (Secs 207–211, 234B, 234C) ============ */
@@ -811,6 +831,33 @@ function buildReport(){
     rp('Balance payable with return — after TDS &amp; advance tax', a.balance + adv.interestFees, {always:true, cls:'total'}) +
     '</table>';
 
+  /* Annexure A — slab-wise computation working sheet (interest/penalty excluded) */
+  const annexTable = (label, res, slabs) => {
+    const bk = slabBreakup(res.taxable, slabs);
+    return `<div class="rp-sec"><h2>${label} — Taxable Income ${inr(res.taxable)} <span style="font-size:9px;letter-spacing:.06em">(rounded u/s 288A)</span></h2>
+      <table class="rp">
+      <tr><th>Income slab</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount in slab</th><th style="text-align:right">Tax</th></tr>` +
+      bk.map(x => `<tr><td>${x.band}</td><td class="num">${(x.rate*100).toFixed(0)}%</td><td class="num">${inr(x.amt)}</td><td class="num">${inr(x.tax)}</td></tr>`).join('') +
+      `<tr class="total"><td colspan="3">Tax as per slabs</td><td class="num">${inr(res.slab)}</td></tr>` +
+      (res.rebate ? `<tr><td colspan="3">Less: rebate u/s 87A (incl. marginal relief)</td><td class="num">(−) ${inr(res.rebate)}</td></tr>` : '') +
+      (res.surcharge ? `<tr><td colspan="3">Add: surcharge (after marginal relief)</td><td class="num">${inr(res.surcharge)}</td></tr>` : '') +
+      `<tr><td colspan="3">Add: health &amp; education cess @ 4%</td><td class="num">${inr(res.cess)}</td></tr>
+      <tr class="total"><td colspan="3">Total tax liability (rounded u/s 288B)</td><td class="num">${inr(res.final)}</td></tr>
+      </table></div>`;
+  };
+  const annexure = `<div class="rp-frame rp-break">
+    <div class="rp-head">
+      <h1>Annexure A</h1>
+      <div class="rp-sub">Slab-wise Tax Computation Working · FY 2025-26 (AY 2026-27) · ${ageNames[inputs.age]}</div>
+    </div>
+    ${annexTable('New Regime — Sec 115BAC(1A)', n, NEW_SLABS)}
+    ${annexTable('Old Regime — ' + ageNames[inputs.age], o, oldSlabs(inputs.age))}
+    <div class="rp-foot">
+      Working sheet supporting the computation statement. Income rounded to the nearest ₹10 u/s 288A and tax to the nearest ₹10 u/s 288B. Interest u/s 234A/B/C and fee u/s 234F are settlement items and appear only in the main statement.
+      <div class="sig">KaraNīti · Designed &amp; Architected by Krishnamurthy Kandregula · Made by Claude</div>
+    </div>
+  </div>`;
+
   $('printReport').innerHTML = `<div class="rp-frame">
     <div class="rp-head">
       <h1>KaraNīti</h1>
@@ -828,7 +875,7 @@ function buildReport(){
       Educational estimate for resident individuals under the Income-tax Act (as applicable to AY 2026-27). Excludes special-rate income and 80D sub-limits. Interest computed on figures rounded per Rule 119A. Verify before filing; ITR due 31 July 2026 for non-audit cases.
       <div class="sig">KaraNīti · Designed &amp; Architected by Krishnamurthy Kandregula · Made by Claude</div>
     </div>
-  </div>`;
+  </div>` + annexure;
 }
 $('exportBtn').addEventListener('click', () => { buildReport(); window.print(); });
 
