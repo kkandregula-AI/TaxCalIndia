@@ -112,6 +112,33 @@ footer .sig b{color:var(--gold);font-weight:500}
 
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+
+/* ============ PDF EXPORT (print) ============ */
+.export-row{display:flex;justify-content:flex-end;margin-bottom:12px}
+#printReport{display:none}
+@media print{
+  @page{size:A4;margin:12mm}
+  body{background:#fff}
+  header,.wrap,footer{display:none!important}
+  #printReport{display:block;color:#1a1a14;font-family:'DM Sans',sans-serif;font-size:11.5px;line-height:1.5}
+  .rp-frame{border:1px solid #1a1a14;outline:3px double #1a1a14;outline-offset:-7px;padding:26px 28px}
+  .rp-head{text-align:center;border-bottom:2px solid #1a1a14;padding-bottom:12px;margin-bottom:16px}
+  .rp-head h1{font-family:'Cinzel',serif;font-size:24px;font-weight:600;letter-spacing:.12em;color:#1a1a14}
+  .rp-head .rp-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6b6656;margin-top:4px}
+  .rp-sec{margin-bottom:14px;break-inside:avoid}
+  .rp-sec h2{font-family:'Cinzel',serif;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#8a6d2f;border-bottom:1px solid #d8d2c0;padding-bottom:4px;margin-bottom:8px}
+  table.rp{width:100%;border-collapse:collapse}
+  table.rp td,table.rp th{padding:4px 8px;border-bottom:1px dotted #cfc9b8;text-align:left;vertical-align:top}
+  table.rp th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#6b6656;font-weight:400;border-bottom:1px solid #1a1a14}
+  table.rp td.num{font-family:'DM Mono',monospace;text-align:right;white-space:nowrap}
+  table.rp tr.total td{border-top:1.5px solid #1a1a14;border-bottom:none;font-weight:700;padding-top:6px}
+  table.rp tr.win td{background:#f4efe2}
+  .rp-verdict{border:1.5px solid #8a6d2f;padding:12px 16px;text-align:center;margin:14px 0;break-inside:avoid}
+  .rp-verdict .v1{font-family:'Cinzel',serif;font-size:16px;font-weight:600;letter-spacing:.06em;color:#8a6d2f}
+  .rp-verdict .v2{font-family:'DM Mono',monospace;font-size:11px;margin-top:3px}
+  .rp-foot{border-top:2px solid #1a1a14;margin-top:16px;padding-top:10px;font-size:9.5px;color:#6b6656}
+  .rp-foot .sig{font-family:'DM Mono',monospace;text-align:center;margin-top:8px;letter-spacing:.08em}
+}
 </style>
 </head>
 <body>
@@ -233,6 +260,10 @@ footer .sig b{color:var(--gold);font-weight:500}
 
   <!-- ============ RESULTS ============ -->
   <section aria-label="Result" aria-live="polite">
+
+    <div class="export-row">
+      <button class="add-btn" id="exportBtn">⤓ &nbsp;Export PDF</button>
+    </div>
 
     <div class="verdict" id="verdict">
       <div class="v-eyebrow">Verdict</div>
@@ -369,6 +400,8 @@ footer .sig b{color:var(--gold);font-weight:500}
   </section>
 </main>
 </div>
+
+<div id="printReport" aria-hidden="true"></div>
 
 <footer>
   <div class="wrap">
@@ -585,7 +618,7 @@ function renderAdvance(oFinal, nFinal, inputs, oTaxable, nTaxable){
     rows += `<div class="r"><span><b>Total FY 2025-26 outgo — tax + interest + fees</b></span><span style="color:var(--red)"><b>${inr(finalTax + interestFees)}</b></span></div>`;
   }
   $('advRows').innerHTML = rows;
-  return { interestFees, grand: finalTax + interestFees };
+  return { interestFees, grand: finalTax + interestFees, a, useNew, finalTax, exempt, totalFY };
 }
 function renderOldSlabTable(){
   const names = { below60:'(below 60)', senior:'(senior, 60–79)', super:'(super senior, 80+)' };
@@ -603,6 +636,7 @@ function update(){
   renderRegime('Old', o); renderRegime('New', n);
   renderOldSlabTable();
   const adv = renderAdvance(o.final, n.final, inputs, o.taxable, n.taxable);
+  state.last = { o, n, inputs, adv };
 
   /* let-out property computation panel — 30% deduction shown explicitly */
   const hasHP = inputs.rent > 0 || inputs.muni > 0 || inputs.letint > 0;
@@ -684,6 +718,98 @@ $('payList').addEventListener('click', e => {
   const b = e.target.closest('button[data-i]'); if (!b) return;
   state.payments.splice(Number(b.dataset.i), 1); update();
 });
+
+/* ============ PDF EXPORT ============ */
+function rp(label, val, opts={}){
+  if (!opts.always && !val) return '';
+  const v = (opts.minus ? '(−) ' : '') + inr(Math.abs(val));
+  return `<tr class="${opts.cls||''}"><td>${label}</td><td class="num">${v}</td></tr>`;
+}
+function buildReport(){
+  const { o, n, inputs, adv } = state.last;
+  const today = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+  const ageNames = { below60:'Individual, below 60', senior:'Senior citizen (60–79)', super:'Super senior citizen (80+)' };
+  const winner = adv.useNew ? 'NEW' : 'OLD';
+  const NAV = Math.max(0, inputs.rent - inputs.muni);
+
+  /* income & deductions */
+  let sec1 = '<table class="rp"><tr><th>Particulars</th><th style="text-align:right">Amount</th></tr>' +
+    rp('Gross salary income', inputs.salary) +
+    rp('Income from other sources', inputs.other) +
+    rp('Employer NPS — 80CCD(2)', inputs.nps2) +
+    rp('HRA exemption claimed — 10(13A)', inputs.hra) +
+    rp('80C incl. home loan principal', Math.min(inputs.d80c + inputs.principal, 150000)) +
+    rp('80CCD(1B) — own NPS', Math.min(inputs.dccd1b, 50000)) +
+    rp('80D — health insurance', inputs.d80d) +
+    rp('24(b) — self-occupied interest', Math.min(inputs.d24b, 200000)) +
+    rp('Professional tax — 16(iii)', Math.min(inputs.protax, 2500)) +
+    rp('Other deductions', inputs.dother) +
+    '</table>';
+
+  /* house property */
+  let sec2 = '';
+  if (inputs.rent > 0 || inputs.letint > 0){
+    const std30 = .30 * NAV, res = NAV - std30 - inputs.letint;
+    sec2 = `<div class="rp-sec"><h2>Income from Let-out Property (Sec 22–24)</h2>
+      <table class="rp">` +
+      rp('Rent received — gross annual value', inputs.rent, {always:true}) +
+      rp('Less: municipal / property taxes paid', inputs.muni, {minus:true, always:true}) +
+      rp('Net annual value', NAV, {always:true}) +
+      rp('Less: standard deduction 30% u/s 24(a)', std30, {minus:true, always:true}) +
+      rp('Less: interest on borrowed capital u/s 24(b)', inputs.letint, {minus:true, always:true}) +
+      rp(res >= 0 ? 'Income from house property' : 'Loss from house property', res, {always:true, cls:'total'}) +
+      '</table></div>';
+  }
+
+  /* regime comparison */
+  const row2 = (label, ov, nv, cls='') =>
+    `<tr class="${cls}"><td>${label}</td><td class="num">${inr(ov)}</td><td class="num">${inr(nv)}</td></tr>`;
+  let sec3 = `<table class="rp">
+    <tr><th>Computation</th><th style="text-align:right">Old Regime ${winner==='OLD'?'★':''}</th><th style="text-align:right">New Regime ${winner==='NEW'?'★':''}</th></tr>` +
+    row2('Taxable income', o.taxable, n.taxable) +
+    row2('Tax as per slabs', o.slab, n.slab) +
+    row2('Less: rebate u/s 87A', o.rebate, n.rebate) +
+    row2('Add: surcharge', o.surcharge, n.surcharge) +
+    row2('Add: health & education cess @ 4%', o.cess, n.cess) +
+    row2('Total tax liability', o.final, n.final, 'total') +
+    '</table>';
+
+  /* advance tax & interest */
+  const a = adv.a;
+  let sec4 = `<table class="rp">
+    <tr><th>Installment due date</th><th style="text-align:right">Required (cum.)</th><th style="text-align:right">Paid (cum.)</th><th style="text-align:right">Shortfall</th></tr>` +
+    a.sched.map(s => `<tr><td>${s.date}</td><td class="num">${inr(s.req)}</td><td class="num">${inr(s.paid)}</td><td class="num">${s.short>0?inr(s.short):'—'}</td></tr>`).join('') +
+    '</table><table class="rp" style="margin-top:8px">' +
+    rp('Net liability after TDS of ' + inr(inputs.tds), a.C, {always:true}) +
+    rp('Advance tax paid during FY 2025-26', adv.totalFY, {minus:true, always:true}) +
+    (adv.exempt ? '<tr><td colspan="2">Exempt from advance tax u/s 207 — resident senior citizen, no business income</td></tr>' :
+      rp('Interest u/s 234C — deferment of installments', a.i234c) +
+      rp('Interest u/s 234B — shortfall below 90%', a.i234b) +
+      rp('Interest u/s 234A — filing after due date', a.i234a) +
+      rp('Late filing fee u/s 234F', a.fee234f)) +
+    rp('Balance payable with return', a.balance + adv.interestFees, {always:true, cls:'total'}) +
+    '</table>';
+
+  $('printReport').innerHTML = `<div class="rp-frame">
+    <div class="rp-head">
+      <h1>KaraNīti</h1>
+      <div class="rp-sub">Income Tax Computation Statement · FY 2025-26 (AY 2026-27) · ${ageNames[inputs.age]} · Generated ${today}</div>
+    </div>
+    <div class="rp-sec"><h2>Income &amp; Deductions Declared</h2>${sec1}</div>
+    ${sec2}
+    <div class="rp-sec"><h2>Regime Comparison — Sec 115BAC</h2>${sec3}</div>
+    <div class="rp-verdict">
+      <div class="v1">${winner === 'NEW' ? 'New' : 'Old'} Regime Recommended</div>
+      <div class="v2">Tax liability ${inr(adv.finalTax)} · saves ${inr(Math.abs(o.final - n.final))} vs the other regime${adv.interestFees ? ' · final outgo incl. interest & fees ' + inr(adv.grand) : ''}</div>
+    </div>
+    <div class="rp-sec"><h2>Advance Tax, Interest &amp; Fees</h2>${sec4}</div>
+    <div class="rp-foot">
+      Educational estimate for resident individuals under the Income-tax Act (as applicable to AY 2026-27). Excludes special-rate income and 80D sub-limits. Interest computed on figures rounded per Rule 119A. Verify before filing; ITR due 31 July 2026 for non-audit cases.
+      <div class="sig">KaraNīti · Designed &amp; Architected by Krishnamurthy Kandregula · Made by Claude</div>
+    </div>
+  </div>`;
+}
+$('exportBtn').addEventListener('click', () => { buildReport(); window.print(); });
 
 /* restore */
 try{
