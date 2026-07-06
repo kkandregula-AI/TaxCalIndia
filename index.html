@@ -597,13 +597,15 @@ function renderAdvance(oFinal, nFinal, inputs, oTaxable, nTaxable){
   $('advSched').innerHTML = a.sched.map(s =>
     `<tr><td>${s.date}</td><td>${inr(s.req)}</td><td>${inr(s.paid)}</td>
      <td style="color:${s.short>0?'var(--red)':'var(--green)'}">${s.short>0?inr(s.short):'—'}</td></tr>`).join('');
-  let rows = rowHTML('Net liability after TDS', a.C);
+  let rows = rowHTML('Total tax liability (' + (useNew ? 'new' : 'old') + ' regime)', finalTax) +
+             rowHTML('Less: TDS / TCS deducted', inputs.tds, true) +
+             rowHTML('Net liability after TDS', a.C);
   if (exempt){
     rows += `<div class="r"><span style="color:var(--green)">Exempt from advance tax u/s 207</span><span>—</span></div>`;
   } else if (!a.applies){
     rows += `<div class="r"><span style="color:var(--green)">Below ₹10,000 — advance tax not applicable</span><span>—</span></div>`;
   } else {
-    rows += rowHTML('Advance tax paid', totalFY, true) +
+    rows += rowHTML('Less: advance tax paid', totalFY, true) +
             rowHTML('Interest u/s 234C (deferment)', a.i234c) +
             rowHTML('Interest u/s 234B (shortfall < 90%)', a.i234b);
   }
@@ -613,12 +615,12 @@ function renderAdvance(oFinal, nFinal, inputs, oTaxable, nTaxable){
   }
   const interestFees = (a.applies && !exempt ? a.i234c + a.i234b : 0) + a.i234a + a.fee234f;
   const totalDue = a.balance + interestFees;
-  rows += `<div class="r"><span><b>Balance payable with return</b></span><span style="color:var(--gold)"><b>${inr(totalDue)}</b></span></div>`;
+  rows += `<div class="r"><span><b>Balance payable with return — after TDS &amp; advance tax</b></span><span style="color:var(--gold)"><b>${inr(totalDue)}</b></span></div>`;
   if (interestFees > 0){
-    rows += `<div class="r"><span><b>Total FY 2025-26 outgo — tax + interest + fees</b></span><span style="color:var(--red)"><b>${inr(finalTax + interestFees)}</b></span></div>`;
+    rows += `<div class="r"><span>Total tax cost for the year (incl. ${inr(inputs.tds)} TDS + interest &amp; fees)</span><span style="color:var(--red)">${inr(finalTax + interestFees)}</span></div>`;
   }
   $('advRows').innerHTML = rows;
-  return { interestFees, grand: finalTax + interestFees, a, useNew, finalTax, exempt, totalFY };
+  return { interestFees, grand: finalTax + interestFees, totalDue, a, useNew, finalTax, exempt, totalFY };
 }
 function renderOldSlabTable(){
   const names = { below60:'(below 60)', senior:'(senior, 60–79)', super:'(super senior, 80+)' };
@@ -685,9 +687,10 @@ function update(){
   }
   /* final outgo including interest & penalties */
   const vx = $('vExtra');
-  if (adv && adv.interestFees > 0 && (inputs.salary + inputs.other + inputs.rent) > 0){
+  if (adv && (inputs.salary + inputs.other + inputs.rent) > 0 && (adv.totalDue > 0 || adv.interestFees > 0)){
     vx.style.display = 'block';
-    vx.textContent = '+ ' + inr(adv.interestFees) + ' interest & fees (234A/B/C, 234F) → final outgo ' + inr(adv.grand);
+    vx.textContent = 'Balance payable with return: ' + inr(adv.totalDue) +
+      ' (after TDS & advance tax' + (adv.interestFees > 0 ? ', incl. ' + inr(adv.interestFees) + ' interest & fees' : '') + ')';
   } else {
     vx.style.display = 'none';
   }
@@ -707,13 +710,29 @@ segHandler('ageSeg','age'); segHandler('payMonth','payMonth'); segHandler('bizSe
 fields.forEach(f => $(f).addEventListener('input', update));
 
 /* payment ledger */
-$('addPay').addEventListener('click', () => {
-  const d = $('payDate').value, a = Math.max(0, Number($('payAmt').value) || 0);
-  if (!d || !a) return;
+const FY_MIN = '2025-04-01', FY_MAX = '2026-03-31';
+/* default the date field so Add works immediately (empty date inputs look blank on iOS) */
+(function(){
+  const t = new Date().toISOString().slice(0,10);
+  $('payDate').value = t < FY_MIN ? FY_MIN : (t > FY_MAX ? FY_MAX : t);
+})();
+function flashField(el){
+  el.style.borderColor = 'var(--red)';
+  setTimeout(() => { el.style.borderColor = ''; }, 1200);
+}
+function addPayment(){
+  let d = $('payDate').value;
+  const a = Math.max(0, Number($('payAmt').value) || 0);
+  if (!a){ flashField($('payAmt')); return; }
+  if (!d){ flashField($('payDate')); return; }
+  if (d < FY_MIN) d = FY_MIN;
+  if (d > FY_MAX) d = FY_MAX;
   state.payments.push({ d, a });
   state.payments.sort((x,y) => x.d < y.d ? -1 : 1);
   $('payAmt').value = ''; update();
-});
+}
+$('addPay').addEventListener('click', addPayment);
+$('payAmt').addEventListener('keydown', e => { if (e.key === 'Enter') addPayment(); });
 $('payList').addEventListener('click', e => {
   const b = e.target.closest('button[data-i]'); if (!b) return;
   state.payments.splice(Number(b.dataset.i), 1); update();
@@ -780,14 +799,16 @@ function buildReport(){
     <tr><th>Installment due date</th><th style="text-align:right">Required (cum.)</th><th style="text-align:right">Paid (cum.)</th><th style="text-align:right">Shortfall</th></tr>` +
     a.sched.map(s => `<tr><td>${s.date}</td><td class="num">${inr(s.req)}</td><td class="num">${inr(s.paid)}</td><td class="num">${s.short>0?inr(s.short):'—'}</td></tr>`).join('') +
     '</table><table class="rp" style="margin-top:8px">' +
-    rp('Net liability after TDS of ' + inr(inputs.tds), a.C, {always:true}) +
-    rp('Advance tax paid during FY 2025-26', adv.totalFY, {minus:true, always:true}) +
+    rp('Total tax liability — ' + (adv.useNew ? 'new' : 'old') + ' regime', adv.finalTax, {always:true}) +
+    rp('Less: TDS / TCS deducted during the year', inputs.tds, {minus:true, always:true}) +
+    rp('Net liability after TDS', a.C, {always:true}) +
+    rp('Less: advance tax paid during FY 2025-26', adv.totalFY, {minus:true, always:true}) +
     (adv.exempt ? '<tr><td colspan="2">Exempt from advance tax u/s 207 — resident senior citizen, no business income</td></tr>' :
-      rp('Interest u/s 234C — deferment of installments', a.i234c) +
-      rp('Interest u/s 234B — shortfall below 90%', a.i234b) +
-      rp('Interest u/s 234A — filing after due date', a.i234a) +
-      rp('Late filing fee u/s 234F', a.fee234f)) +
-    rp('Balance payable with return', a.balance + adv.interestFees, {always:true, cls:'total'}) +
+      rp('Add: interest u/s 234C — deferment of installments', a.i234c) +
+      rp('Add: interest u/s 234B — shortfall below 90%', a.i234b) +
+      rp('Add: interest u/s 234A — filing after due date', a.i234a) +
+      rp('Add: late filing fee u/s 234F', a.fee234f)) +
+    rp('Balance payable with return — after TDS &amp; advance tax', a.balance + adv.interestFees, {always:true, cls:'total'}) +
     '</table>';
 
   $('printReport').innerHTML = `<div class="rp-frame">
