@@ -533,26 +533,39 @@ function advanceTax(finalTax, tds, paid, totalPaidFY, payMonth, exempt, taxable)
     date:d, req: applies ? C*p : 0, paid: paid[i],
     short: applies ? Math.max(0, C*p - paid[i]) : 0
   }));
-  let i234c = 0;
+  /* 234C — per-installment working (kept for Annexure B) */
+  const RULES = [[.15,.12,3],[.45,.36,3],[.75,null,3],[1.00,null,1]];
+  let i234c = 0; const c234 = [];
   if (applies){
-    if (paid[0] < .12*C) i234c += .01*3*r100(.15*C - paid[0]);   // 12% tolerance
-    if (paid[1] < .36*C) i234c += .01*3*r100(.45*C - paid[1]);   // 36% tolerance
-    i234c += .01*3*r100(.75*C - paid[2]);
-    i234c += .01*1*r100(C - paid[3]);
+    RULES.forEach(([req, tol, months], i) => {
+      const short = r100(req*C - paid[i]);
+      const waived = tol !== null && paid[i] >= tol*C && short > 0;
+      const int = (!waived && short > 0) ? .01*months*short : 0;
+      c234.push({ due: ADV_DATES[i][0], reqPct: req*100, req: req*C, paid: paid[i],
+                  short, months, tol, waived, int });
+      i234c += int;
+    });
   }
   const balance = Math.max(0, C - totalPaidFY);
-  let i234b = 0;
-  if (applies && totalPaidFY < .90*C){
-    const months = payMonth - 3;            // Apr(4)→1 month … Sep(9)→6 months
-    i234b = .01*months*r100(C - totalPaidFY);
+  /* 234B working */
+  let i234b = 0, b234 = null;
+  if (applies){
+    const ninety = .90*C, shortB = r100(C - totalPaidFY), months = payMonth - 3;
+    if (totalPaidFY < ninety){
+      i234b = .01*months*shortB;
+      b234 = { ninety, paidPct: C > 0 ? totalPaidFY/C*100 : 0, short: shortB, months, int: i234b };
+    } else {
+      b234 = { ninety, paidPct: C > 0 ? totalPaidFY/C*100 : 0, short: 0, months, int: 0 };
+    }
   }
   /* Late filing (return due 31 Jul 2026 for non-audit cases) */
-  let i234a = 0, fee234f = 0, late = payMonth > 7;
+  let i234a = 0, fee234f = 0, late = payMonth > 7, a234 = null;
   if (late){
-    if (balance > 0) i234a = .01*(payMonth - 7)*r100(balance);           // 1%/month from Aug
+    const monthsLate = payMonth - 7;
+    if (balance > 0){ i234a = .01*monthsLate*r100(balance); a234 = { months: monthsLate, base: r100(balance), int: i234a }; }
     if (taxable > 250000) fee234f = taxable <= 500000 ? 1000 : 5000;     // Sec 234F
   }
-  return { C, applies, sched, i234c, i234b, i234a, fee234f, late, balance };
+  return { C, applies, sched, i234c, i234b, i234a, fee234f, late, balance, c234, b234, a234, payMonth };
 }
 
 /* ============ UI ============ */
@@ -853,10 +866,58 @@ function buildReport(){
     ${annexTable('New Regime — Sec 115BAC(1A)', n, NEW_SLABS)}
     ${annexTable('Old Regime — ' + ageNames[inputs.age], o, oldSlabs(inputs.age))}
     <div class="rp-foot">
-      Working sheet supporting the computation statement. Income rounded to the nearest ₹10 u/s 288A and tax to the nearest ₹10 u/s 288B. Interest u/s 234A/B/C and fee u/s 234F are settlement items and appear only in the main statement.
+      Working sheet supporting the computation statement. Income rounded to the nearest ₹10 u/s 288A and tax to the nearest ₹10 u/s 288B.
       <div class="sig">KaraNīti · Designed &amp; Architected by Krishnamurthy Kandregula · Made by Claude</div>
     </div>
   </div>`;
+
+  /* Annexure B — interest & fee computation (only when advance tax applies) */
+  let annexureB = '';
+  if (a.applies){
+    const monthName = { 4:'April', 5:'May', 6:'June', 7:'July', 8:'August', 9:'September' }[a.payMonth];
+    const cRows = a.c234.map(x => {
+      const note = x.short === 0 ? 'paid in full' :
+                   x.waived ? `waived — paid ≥ ${(x.tol*100)}% of liability` :
+                   `${inr(x.short)} × 1% × ${x.months} mo`;
+      return `<tr><td>${x.due} (${x.reqPct}%)</td><td class="num">${inr(x.req)}</td><td class="num">${inr(x.paid)}</td><td>${note}</td><td class="num">${inr(x.int)}</td></tr>`;
+    }).join('');
+    const bRow = a.b234.short > 0
+      ? `Advance tax paid ${inr(adv.totalFY)} is ${a.b234.paidPct.toFixed(1)}% of liability — below the 90% threshold of ${inr(a.b234.ninety)}.
+         Interest: shortfall ${inr(a.b234.short)} × 1% × ${a.b234.months} months (1 Apr 2026 → ${monthName} 2026) = <b>${inr(a.b234.int)}</b>`
+      : `Advance tax paid ${inr(adv.totalFY)} is ${a.b234.paidPct.toFixed(1)}% of liability — meets the 90% threshold. No interest u/s 234B.`;
+    const aRow = a.late
+      ? (a.a234 ? `Return filed in ${monthName} 2026, after the 31 July due date. Interest: balance ${inr(a.a234.base)} × 1% × ${a.a234.months} month(s) = <b>${inr(a.a234.int)}</b>${a.fee234f ? `. Late filing fee u/s 234F: <b>${inr(a.fee234f)}</b>` : ''}`
+                : `Return filed after the due date but no tax balance remains — no 234A interest.${a.fee234f ? ` Late filing fee u/s 234F: <b>${inr(a.fee234f)}</b>` : ''}`)
+      : `Return filed by the 31 July 2026 due date — Sections 234A and 234F not attracted.`;
+    annexureB = `<div class="rp-frame rp-break">
+      <div class="rp-head">
+        <h1>Annexure B</h1>
+        <div class="rp-sub">Interest &amp; Fee Computation · Sections 234A, 234B, 234C &amp; 234F</div>
+      </div>
+      <div class="rp-sec"><h2>Interest u/s 234C — Deferment of Advance Tax Installments</h2>
+        <table class="rp">
+        <tr><th>Installment</th><th style="text-align:right">Required (cum.)</th><th style="text-align:right">Paid (cum.)</th><th>Working</th><th style="text-align:right">Interest</th></tr>
+        ${cRows}
+        <tr class="total"><td colspan="4">Interest u/s 234C</td><td class="num">${inr(a.i234c)}</td></tr>
+        </table>
+      </div>
+      <div class="rp-sec"><h2>Interest u/s 234B — Shortfall Below 90%</h2><p>${bRow}</p></div>
+      <div class="rp-sec"><h2>Sections 234A &amp; 234F — Late Filing</h2><p>${aRow}</p></div>
+      <div class="rp-sec"><h2>Total Added to Balance Payable</h2>
+        <table class="rp">` +
+        rp('Interest u/s 234C', a.i234c, {always:true}) +
+        rp('Interest u/s 234B', a.i234b, {always:true}) +
+        rp('Interest u/s 234A', a.i234a) +
+        rp('Late filing fee u/s 234F', a.fee234f) +
+        rp('Total interest &amp; fees carried to main statement', adv.interestFees, {always:true, cls:'total'}) +
+        `</table>
+      </div>
+      <div class="rp-foot">
+        Shortfalls rounded down to the nearest ₹100 per Rule 119A before applying interest. 234C: 1% × 3 months per deferred installment (1 month for the 15 March installment); first two installments waived if cumulative payment reached 12% / 36% of liability respectively. 234B: 1% per month or part thereof from 1 April 2026. This total is added to the balance payable with return in the main statement.
+        <div class="sig">KaraNīti · Designed &amp; Architected by Krishnamurthy Kandregula · Made by Claude</div>
+      </div>
+    </div>`;
+  }
 
   $('printReport').innerHTML = `<div class="rp-frame">
     <div class="rp-head">
@@ -875,7 +936,7 @@ function buildReport(){
       Educational estimate for resident individuals under the Income-tax Act (as applicable to AY 2026-27). Excludes special-rate income and 80D sub-limits. Interest computed on figures rounded per Rule 119A. Verify before filing; ITR due 31 July 2026 for non-audit cases.
       <div class="sig">KaraNīti · Designed &amp; Architected by Krishnamurthy Kandregula · Made by Claude</div>
     </div>
-  </div>` + annexure;
+  </div>` + annexure + annexureB;
 }
 $('exportBtn').addEventListener('click', () => { buildReport(); window.print(); });
 
