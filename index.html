@@ -152,6 +152,7 @@ footer .sig b{color:var(--gold);font-weight:500}
     </div>
     <p class="tagline">Old regime vs New regime, computed side by side under Section 115BAC rules — with a clear verdict on which one costs you less.</p>
     <p class="free-note">● 100% free · deterministic · works offline · nothing leaves your device</p>
+    <p class="tagline" style="margin-top:8px;font-size:12.5px;color:var(--gold)">⚠ Built exclusively for FY 2025-26 (AY 2026-27). Tax slabs, rebates and rules change with every Union Budget — do not use this for any other year. Results are approximate estimates, not tax advice.</p>
   </div>
 </header>
 
@@ -301,6 +302,25 @@ footer .sig b{color:var(--gold);font-weight:500}
 
     <div style="margin-top:18px">
       <details>
+        <summary>What to enter — section-by-section guide</summary>
+        <div class="d-body">
+          <ul>
+            <li><b>Gross salary:</b> total from your Form 16 / payslips before any deduction — basic + DA + HRA + allowances + perquisites. Don't subtract anything yourself; the app applies the standard deduction.</li>
+            <li><b>Other income:</b> savings/FD interest, dividends, family pension. Get accurate figures from your AIS on the e-filing portal.</li>
+            <li><b>80CCD(2) — employer NPS:</b> only the <i>employer's</i> contribution to your NPS. Limit: 14% of basic+DA in the new regime; 10% for private-sector employees in the old regime (14% for government).</li>
+            <li><b>HRA exemption:</b> the least of — actual HRA received; rent paid minus 10% of basic+DA; 50% of basic (metro) or 40% (non-metro). Needs rent receipts, and the landlord's PAN if rent exceeds ₹1L/year.</li>
+            <li><b>80C (₹1.5L cap):</b> EPF/VPF, PPF, ELSS mutual funds, life insurance premium, NSC, Sukanya Samriddhi, 5-year tax-saver FD, tuition fees for up to 2 children. Home loan principal and stamp duty go in the dedicated field — the app enforces the combined cap.</li>
+            <li><b>80CCD(1B):</b> your <i>own</i> NPS Tier-I contribution — an extra ₹50,000 over and above 80C.</li>
+            <li><b>80D:</b> health insurance premiums — up to ₹25,000 for self/family (₹50,000 if you're 60+), plus a separate ₹25,000/₹50,000 for parents' policies, plus ₹5,000 preventive health checkup within these limits. Enter your total eligible amount; the app doesn't split sub-limits.</li>
+            <li><b>Home loan interest:</b> take both figures straight from your lender's annual interest certificate — interest to the 24(b) field (self-occupied, capped ₹2L) or the let-out field (uncapped), principal to its own field.</li>
+            <li><b>Let-out property:</b> actual rent received; municipal taxes only if <i>you</i> paid them this year; the 30% deduction is automatic — don't reduce anything yourself.</li>
+            <li><b>Other deductions:</b> 80G donations (50%/100% as per receipt), 80E education loan interest (no cap), 80TTA savings interest ₹10k (80TTB ₹50k for seniors), 80EEA if your loan qualifies.</li>
+            <li><b>TDS/TCS:</b> the total from Form 26AS — salary TDS, bank TDS, tenant's 194-IB TDS, everything.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
         <summary>Slab rates used — FY 2025-26</summary>
         <div class="d-body">
           <table class="slabs">
@@ -348,7 +368,7 @@ footer .sig b{color:var(--gold);font-weight:500}
       </details>
     </div>
 
-    <p class="disclaimer">Educational estimate for resident individuals. Models salary, other income and one let-out + one self-occupied property. Excludes special-rate income (capital gains, lottery), 80D sub-limits, and business-specific deductions. Interest u/s 234B/234C is approximated on rounded figures. Verify with the Income Tax Department's calculator or a tax professional before filing.</p>
+    <p class="disclaimer"><b>Disclaimer:</b> KaraNīti provides approximate estimates for educational purposes only — it is not tax, legal or financial advice, and accuracy is not guaranteed. Valid only for FY 2025-26 (AY 2026-27) for resident individuals. Models salary, other income and one let-out + one self-occupied property; excludes special-rate income (capital gains, lottery), 80D sub-limits, relief u/s 89 and business-specific provisions. Interest u/s 234A/B/C is approximated on rounded figures. Always verify with the Income Tax Department's official calculator or a qualified tax professional before filing or making payments.</p>
   </section>
 
   <!-- ============ ADVANCE TAX ============ -->
@@ -392,7 +412,7 @@ footer .sig b{color:var(--gold);font-weight:500}
 
       <div>
         <table class="slabs" aria-label="Advance tax installment schedule">
-          <tr><th>Due date</th><th>Required (cum.)</th><th>You paid</th><th>Shortfall</th></tr>
+          <tr><th>Due date</th><th>Due (inst.)</th><th>Required (cum.)</th><th>You paid</th><th>Shortfall</th></tr>
           <tbody id="advSched"></tbody>
         </table>
         <div class="rows" style="margin-top:14px" id="advRows"></div>
@@ -628,10 +648,12 @@ function renderAdvance(oFinal, nFinal, inputs, oTaxable, nTaxable){
     : `<div class="empty">No payments recorded yet.</div>`;
 
   const a = advanceTax(finalTax, inputs.tds, cum, totalFY, state.payMonth, exempt, taxable);
-  $('advSched').innerHTML = a.sched.map(s =>
-    `<tr><td>${s.date}</td><td>${inr(s.req)}</td><td>${inr(s.paid)}</td>
-     <td style="color:${s.short>0?'var(--red)':'var(--green)'}">${s.short>0?inr(s.short):'—'}</td></tr>`).join('') +
-    (lateMar > 0 ? `<tr><td colspan="4" style="color:var(--ink-faint);font-size:10.5px">＋ ${inr(lateMar)} paid 16–31 Mar 2026 — counts as advance tax for 234B &amp; balance, but not toward the 15 Mar installment (234C). If actually paid by 15 Mar, correct the date in the ledger.</td></tr>` : '');
+  $('advSched').innerHTML = a.sched.map((s,i) => {
+    const inst = s.req - (i > 0 ? a.sched[i-1].req : 0);
+    return `<tr><td>${s.date}</td><td>${inr(inst)}</td><td>${inr(s.req)}</td><td>${inr(s.paid)}</td>
+     <td style="color:${s.short>0?'var(--red)':'var(--green)'}">${s.short>0?inr(s.short):'—'}</td></tr>`;
+  }).join('') +
+    (lateMar > 0 ? `<tr><td colspan="5" style="color:var(--ink-faint);font-size:10.5px">＋ ${inr(lateMar)} paid 16–31 Mar 2026 — counts as advance tax for 234B &amp; balance, but not toward the 15 Mar installment (234C). If actually paid by 15 Mar, correct the date in the ledger.</td></tr>` : '');
   let rows = rowHTML('Total tax liability (' + (useNew ? 'new' : 'old') + ' regime)', finalTax) +
              rowHTML('Less: TDS / TCS deducted', inputs.tds, true) +
              rowHTML('Net liability after TDS', a.C);
@@ -833,9 +855,12 @@ function buildReport(){
   /* advance tax & interest */
   const a = adv.a;
   let sec4 = `<table class="rp">
-    <tr><th>Installment due date</th><th style="text-align:right">Required (cum.)</th><th style="text-align:right">Paid (cum.)</th><th style="text-align:right">Shortfall</th></tr>` +
-    a.sched.map(s => `<tr><td>${s.date}</td><td class="num">${inr(s.req)}</td><td class="num">${inr(s.paid)}</td><td class="num">${s.short>0?inr(s.short):'—'}</td></tr>`).join('') +
-    (adv.lateMar > 0 ? `<tr><td colspan="4" style="font-size:9.5px;color:#6b6656">Note: ${inr(adv.lateMar)} paid between 16–31 Mar 2026 is included in advance tax paid (Sec 234B and balance) but does not count toward the 15 Mar installment for Sec 234C.</td></tr>` : '') +
+    <tr><th>Installment due date</th><th style="text-align:right">Due (installment)</th><th style="text-align:right">Required (cum.)</th><th style="text-align:right">Paid (cum.)</th><th style="text-align:right">Shortfall</th></tr>` +
+    a.sched.map((s,i) => {
+      const inst = s.req - (i > 0 ? a.sched[i-1].req : 0);
+      return `<tr><td>${s.date}</td><td class="num">${inr(inst)}</td><td class="num">${inr(s.req)}</td><td class="num">${inr(s.paid)}</td><td class="num">${s.short>0?inr(s.short):'—'}</td></tr>`;
+    }).join('') +
+    (adv.lateMar > 0 ? `<tr><td colspan="5" style="font-size:9.5px;color:#6b6656">Note: ${inr(adv.lateMar)} paid between 16–31 Mar 2026 is included in advance tax paid (Sec 234B and balance) but does not count toward the 15 Mar installment for Sec 234C.</td></tr>` : '') +
     '</table><table class="rp" style="margin-top:8px">' +
     rp('Total tax liability — ' + (adv.useNew ? 'new' : 'old') + ' regime', adv.finalTax, {always:true}) +
     rp('Less: TDS / TCS deducted during the year', inputs.tds, {minus:true, always:true}) +
@@ -938,7 +963,7 @@ function buildReport(){
     </div>
     <div class="rp-sec"><h2>Advance Tax, Interest &amp; Fees</h2>${sec4}</div>
     <div class="rp-foot">
-      Educational estimate for resident individuals under the Income-tax Act (as applicable to AY 2026-27). Excludes special-rate income and 80D sub-limits. Interest computed on figures rounded per Rule 119A. Verify before filing; ITR due 31 July 2026 for non-audit cases.
+      Approximate estimate for educational purposes only — not tax advice; accuracy not guaranteed. Valid only for FY 2025-26 (AY 2026-27), resident individuals under the Income-tax Act. Excludes special-rate income, 80D sub-limits and relief u/s 89. Interest computed on figures rounded per Rule 119A. Verify with the Income Tax Department's calculator or a qualified professional before filing; ITR due 31 July 2026 for non-audit cases.
       <div class="sig">KaraNīti · Designed &amp; Architected by Krishnamurthy Kandregula · Made by Claude</div>
     </div>
   </div>` + annexure + annexureB;
